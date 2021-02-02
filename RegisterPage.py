@@ -10,12 +10,14 @@ LARGEFONT =("Verdana", 35)
 # second window frame page1  
 class RegisterPage(tk.Frame): 
       
-    def __init__(self, parent, controller):
+    def __init__(self, parent, controller, register_action):
 
         from HomePage import HomePage
         from SigninPage import SigninPage 
           
         tk.Frame.__init__(self, parent) 
+        self.register_action = register_action
+
          # Configure welcome canvas
         canvas = tk.Canvas(self, height=100, width=100)
 
@@ -32,10 +34,11 @@ class RegisterPage(tk.Frame):
 
         # Buttons
         signin_button = tk.Button(self, fg="white", bg="green", text ="Sign in Instead?", 
-        command = lambda : controller.show_frame(SigninPage)) 
+        command = lambda : controller.show_frame("Sign In Page")) 
         signin_button.grid(row = 0, column = 4, padx = 2, pady = 2) 
    
-        register_button = tk.Button(self, text ="REGISTER", bg="blue", fg="white", width=35).grid(row = 6, column = 1, pady = 5, columnspan=2) 
+        register_button = tk.Button(self, text ="REGISTER", bg="blue", command=self.register_action,
+         fg="white", width=35).grid(row = 6, column = 1, pady = 5, columnspan=2) 
 
 
         # Input fields
@@ -43,6 +46,7 @@ class RegisterPage(tk.Frame):
         username_field.config(width=35)
         username_field.grid(columnspan=2, column=1, row=3)
         self.email = username_field
+        self.email.focus()
 
         password_field = EntryWithPlaceholder(master=self, placeholder="Must be atleast 8 characters")
         password_field.config(width=35)
@@ -73,7 +77,7 @@ class RegisterPage(tk.Frame):
             messagebox.showinfo(title='Empty Fields', message="Please enter all fields")
             return []
 
-        if re.search(regex, email):
+        if not re.search(regex, email):
             messagebox.showinfo(title="Invalid email", message="Please enter a valid email")
             return []
         

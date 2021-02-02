@@ -1,4 +1,5 @@
 from logging import NullHandler
+from os import kill
 import re
 import tkinter as tk 
 from tkinter import PhotoImage, ttk
@@ -10,7 +11,7 @@ from tkinter import messagebox
 LARGEFONT =("Verdana", 35) 
    
 class SigninPage(tk.Frame): 
-    def __init__(self, parent, controller):  
+    def __init__(self, parent, controller, signin_action):  
 
                 
         from HomePage import HomePage
@@ -18,6 +19,7 @@ class SigninPage(tk.Frame):
           
         
         tk.Frame.__init__(self, parent)
+        self.signin_action = signin_action
 
 
         # Configure welcome canvas
@@ -36,17 +38,21 @@ class SigninPage(tk.Frame):
 
         # Buttons
         register_button = tk.Button(self, fg="white", bg="blue", text ="Register Instead?", 
-        command = lambda : controller.show_frame(RegisterPage)) 
+        command = lambda : controller.show_frame('Register Page')) 
         register_button.grid(row = 0, column = 4, padx = 2, pady = 2) 
    
-        sign_in_button = tk.Button(self, text ="Sign in", bg="green", fg="white", width=35).grid(row = 5, column = 1, pady = 5, columnspan=2) 
+        sign_in_button = tk.Button(self, text ="Sign in", bg="green", command=self.signin_action,
+         fg="white", width=35).grid(row = 5, column = 1, pady = 5, columnspan=2) 
 
 
         # Input fields
-        username_field = ttk.Entry(self, width=35).grid(columnspan=2, column=1, row=3)
-        password_field = ttk.Entry(self, width=35).grid(columnspan=2, column=1, row=4)
+        username_field = ttk.Entry(self, width=35)
+        password_field = ttk.Entry(self, width=35)
         self.email = username_field
+        self.email.grid(columnspan=2, column=1, row=3)
+        self.email.focus()
         self.password = password_field
+        self.password.grid(columnspan=2, column=1, row=4)
 
         # Labels
         username_label = ttk.Label(self, text="Enter Email").grid(column=0, row=3, pady=5)
@@ -63,7 +69,7 @@ class SigninPage(tk.Frame):
             messagebox.showinfo(title='Empty Fields', message="Please enter all fields")
             return []
 
-        if re.search(regex, email):
+        if not re.search(regex, email):
             messagebox.showinfo(title="Invalid email", message="Please enter a valid email")
             return []
         
