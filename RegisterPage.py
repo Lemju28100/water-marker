@@ -21,11 +21,11 @@ class RegisterPage(tk.Frame):
          # Configure welcome canvas
         canvas = tk.Canvas(self, height=100, width=100)
 
-        img = Image.open('signup.png')
+        img = Image.open('data/signup.png')
         img = img.resize((90, 100))
-        img.save('register.png')
+        img.save('data/register.png')
 
-        signin_image = tk.PhotoImage(file='register.png')
+        signin_image = tk.PhotoImage(file='data/register.png')
         self.signin_image = signin_image
         canvas.create_image(50, 50, image=signin_image)
 
@@ -80,11 +80,14 @@ class RegisterPage(tk.Frame):
         if not re.search(regex, email):
             messagebox.showinfo(title="Invalid email", message="Please enter a valid email")
             return []
+
+        if len(password) < 8:
+            messagebox.showinfo(title="Weak Password!", message="Please enter at least 8 characters for your password")
         
         if password != confirm_password:
             messagebox.showinfo(title="Passwords not equal", message="Please enter the same passwords")
             return []
         
         
-        return {'email': self.email, 'password':self.password}
+        return {'email': email, 'password':password}
         

@@ -25,11 +25,11 @@ class SigninPage(tk.Frame):
         # Configure welcome canvas
         canvas = tk.Canvas(self, height=100, width=100)
 
-        img = Image.open('signin.png')
+        img = Image.open('data/signin.png')
         img = img.resize((90, 100))
-        img.save('signin.png')
+        img.save('data/signin.png')
 
-        signin_image = tk.PhotoImage(file='signin.png')
+        signin_image = tk.PhotoImage(file='data/signin.png')
         self.signin_image = signin_image
         canvas.create_image(50, 50, image=signin_image)
 
@@ -73,7 +73,7 @@ class SigninPage(tk.Frame):
             messagebox.showinfo(title="Invalid email", message="Please enter a valid email")
             return []
         
-        return {'email': self.email, 'password':self.password}
+        return {'email': email, 'password':password}
         
 
  
