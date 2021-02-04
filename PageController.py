@@ -4,6 +4,7 @@ from mysql.connector import connection
 from RegisterPage import RegisterPage
 from HomePage import HomePage
 from SigninPage import SigninPage
+from AddLogoPage import AddLogoPage
 import tkinter as tk 
 import mysql.connector
 from mysql.connector import errorcode
@@ -13,6 +14,8 @@ from PIL import Image
 import os, glob
 
 user_email = ''
+counter = ''
+SIZE_TO_DISPLAY = (650, 600)
 
 try:
   cnx = mysql.connector.connect(user='elema', database='water_marker', host='127.0.0.1', password='Sk1dragonro@r', use_pure=True)
@@ -52,6 +55,9 @@ class PageController(tk.Tk):
    
         # initializing frames to an empty array 
         self.frames = {}   
+
+        # INITIALIZING THE VARIOUS PAGES OF THE APP
+
         self.signin_page = SigninPage(container, self, signin_action=self.sign_user_in)
 
         self.register_page = RegisterPage(container, self, register_action = self.register_user)
@@ -63,12 +69,20 @@ class PageController(tk.Tk):
         display_images_action=self.display_images,
         delete_account_action=self.delete_account
         )
+
+        self.add_logo_page = AddLogoPage(container, self,
+        back_to_select_image=self.back_to_select_image,
+        add_logo=self.add_logo,
+        add_text=self.add_text,
+        remove_watermark=self.remove_watermark,
+        process_image=self.process_image)
         
+
 
    
         # iterating through a tuple consisting 
         # of the different page layouts 
-        for F in (self.signin_page, self.register_page, self.home_page):       
+        for F in (self.signin_page, self.register_page, self.home_page, self.add_logo_page):       
             F.grid(row = 0, column = 0, sticky ="nsew") 
    
         self.show_frame(self.home_page) 
@@ -94,6 +108,11 @@ class PageController(tk.Tk):
     def check_password(self, plain_text_password, hashed_password):
     # Check hashed password. Using bcrypt, the salt is saved into the hash itself
         return bcrypt.checkpw(plain_text_password, hashed_password)
+
+
+
+
+# ---------------------------------------------------------------- USER REGISTRATION -----------------------------------------------------------------------
     
     # register user to database
     def register_user(self):
@@ -125,6 +144,10 @@ class PageController(tk.Tk):
             cur.execute(sql, (email, self.get_hashed_password(password),))
             cnx.commit()
             self.show_frame(self.home_page)
+
+
+
+# ------------------------------------------------------------------------ USER SIGNIN -----------------------------------------------------------------------------------
 
     def sign_user_in(self):
         
@@ -165,6 +188,10 @@ class PageController(tk.Tk):
 
                     # Finish Checking password
 
+
+
+
+# ----------------------------------------------------------------------------- HOME PAGE PROCESSING ----------------------------------------------------------------------
     def logout(self):
         is_logout = messagebox.askokcancel(title='Logout?', message='Are you sure you want to logout?')
         if is_logout:
@@ -173,11 +200,15 @@ class PageController(tk.Tk):
         else:
             return
 
+
     def display_images(self):
         pass
     
+
     def next_to_select_watermark_position(self):
-        pass
+        self.add_logo_page.canvas.create_image((SIZE_TO_DISPLAY[0]/2, SIZE_TO_DISPLAY[1]/2), image=self.thumbnail_image)
+        self.show_frame(self.add_logo_page)
+
 
     def delete_account(self):
         global user_email
@@ -204,27 +235,58 @@ class PageController(tk.Tk):
         file_path = filedialog.askopenfilename()
         print(file_path)
 
+        #Set counter to change file name each time.
+        global counter
+
         # Open the file with image module
         try:
             uploaded_image = Image.open(file_path)
-        except UnicodeDecodeError:
+            self.uploaded_image = uploaded_image
+        except:
             messagebox.showinfo(title='Not an Image!', message='Please upload an image')
             return
 
         # resize the image just for display to user
         img = uploaded_image
-        img = img.resize((350, 300))
-        tmp_img_path = 'temp/display_image.png'
+        img.thumbnail(SIZE_TO_DISPLAY, Image.ANTIALIAS)
+        tmp_img_path = f'temp/display_image{counter}.png'
         img.save(tmp_img_path)
+
+        # Increase counter, so save file name changes next time function is called to avoid overwrites
+        counter = 0
+        counter += 1
 
         # Replace the button with image 
         
-        loaded_uploaded_image = PhotoImage(tmp_img_path)
-        self.loaded_uploaded_image = loaded_uploaded_image
-        self.home_page.add_img_button.config(image=self.loaded_uploaded_image)
+        loaded_uploaded_image = PhotoImage(file=tmp_img_path)
+        self.thumbnail_image = loaded_uploaded_image
+        self.home_page.add_img_button.configure(image=self.thumbnail_image)
+
 
         # TODO Display the selected image by emptying the temp filepath.
         # TODO Make sure you delete everything in temp directory only when image processing is complete.
+
+
+# ---------------------------------------------------------------------- ADD LOGO PAGE PROCESSING -------------------------------------------------------------------------
+    
+    def back_to_select_image(self):
+        pass
+
+
+    def add_logo(self):
+        pass
+
+
+    def add_text(self):
+        pass
+
+
+    def remove_watermark(self):
+        pass
+
+
+    def process_image(self):
+        pass
 
 
 
