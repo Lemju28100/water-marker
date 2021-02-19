@@ -1,3 +1,4 @@
+from functools import partial
 from kivy.core import text
 from kivy.uix.label import Label
 from kivy.uix.screenmanager import Screen
@@ -26,7 +27,8 @@ class RecentsPage(Screen):
         # Load images
         self.load_all_images()
 
-        back_button = Button(text='BACK TO HOME', font_size=14, size_hint = (.15, .1), pos_hint = {'x':.825, 'y':.07})
+        back_button = Button(text='BACK TO HOME', font_size=14, size_hint = (.15, .1), pos_hint = {'x':.825, 'y':.07},
+        on_release=partial(self.back_to_home, page_controller))
         self.add_widget(back_button)
 
     
@@ -45,4 +47,6 @@ class RecentsPage(Screen):
         self.add_widget(images_box)
 
         
+    def back_to_home(self, page_controller, event):
+        page_controller.initialize_home_page()
                 
