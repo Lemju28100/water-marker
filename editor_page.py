@@ -1,4 +1,5 @@
 from logging import disable
+from os.path import split
 from kivy.core import text
 from kivy.core.text import markup
 from kivy.lang.builder import Builder
@@ -13,6 +14,7 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.dropdown import DropDown
 from kivy.uix.colorpicker import ColorPicker
 from kivy.uix.slider import Slider
+import json
 
 from kivy.uix.scrollview import ScrollView
 import numpy as np
@@ -38,19 +40,20 @@ import os
 
 
 class EditorPage(Screen):
-    def __init__(self, page_controller, **kw):
+    def __init__(self, page_controller, user, img_url, **kw):
         super().__init__(**kw)
 
         #TODO set self.user back to user
-        self.user = 'kathy'
+        self.user = user
         self.save_counter = 0
         self.number_of_times_image_edited =0
+        self.temp_dir = f'{os.getcwd()}/temp'
 
         self.img_dir = f'{os.getcwd()}/users/{self.user}/images'
         self.watermark_dir = f'{os.getcwd()}/users/{self.user}/watermarks'
 
         #TODO set self.img_url back to img_url
-        self.img_url = f'{os.getcwd()}/users/{self.user}/images/test.png'
+        self.img_url = img_url
 
         self.watermark_path = f'{os.getcwd()}/users/{self.user}/watermarks'
         self.watermark_position = (0, 0)
@@ -75,9 +78,11 @@ class EditorPage(Screen):
 
         watermark_dir = os.listdir(self.watermark_path)
         
-        for watermark in watermark_dir:
-            watermark_source =f'{self.watermark_path}/{watermark}'
+        for i in range(len(watermark_dir)):
+            watermark_source =f'{self.watermark_path}/{watermark_dir[i]}'
             water_image_button = Button(background_normal=watermark_source, size_hint=(1, 1), on_release=self.generate_editor)
+            if i == 3:
+                break
 
 
             recent_watermark_box.add_widget(water_image_button)
@@ -148,6 +153,7 @@ class EditorPage(Screen):
         self.rendered_image = Image(source='data/home_background.png', allow_stretch=True,
         keep_ratio = False)
         # TODO call render_image function to change the source of the rendered image
+        
 
         self.image_render_box.add_widget(self.rendered_image)
         editor_box_content_box.add_widget(self.image_render_box)
@@ -312,6 +318,7 @@ class EditorPage(Screen):
 
     def view_recents(self, controller, event):
         controller.initialize_recents_page()
+        self.delete_temp_files()
 
 
     def render_image(self, button='a', b='b'):
@@ -364,6 +371,7 @@ class EditorPage(Screen):
                     self.add_watermark_button.disabled = True
                     self.save_as_button.disabled = False
                     self.save_button.disabled = False
+                    self.used_watermark = self.rotated_image
 
             
             
@@ -381,8 +389,8 @@ class EditorPage(Screen):
         watermark.thumbnail((watermark_x_size, watermark_y_size))
         watermark.putalpha(int(25.5 * opacity_multiplier))
 
-        rotated_image = watermark.rotate(rotation_value, expand=1)
-        self.main_image.paste(rotated_image, self.watermark_position, rotated_image)
+        self.rotated_image = watermark.rotate(rotation_value, expand=1)
+        self.main_image.paste(self.rotated_image, self.watermark_position, self.rotated_image)
 
         save_source = f'temp/temp_img{self.save_counter}.{self.img_format}'
         
@@ -400,27 +408,60 @@ class EditorPage(Screen):
 
         
     def save_rendered_image(self, e):
-        date_to_save = datetime.now().strftime('%b-%d-%I%M%p-%G')
+        now_date = datetime.now()
+        date_to_save = now_date.strftime('%b-%d-%I%M%p-%G')
 
         image_to_save = Im.open(self.rendered_image.source)
         fp_to_save = f'{os.getcwd()}/users/{self.user}/images/{date_to_save}.{self.img_format}'
 
-        for image in os.listdir(self.img_dir):
-            saved_image_path = f'{self.img_dir}/{image}'
-            saved_images = Im.open(saved_image_path)
+        # for image in os.listdir(self.img_dir):
+        #     saved_image_path = f'{self.img_dir}/{image}'
+        #     saved_images = Im.open(saved_image_path)
 
-            if self.image_is_same(saved_image_path, self.rendered_image.source):
-                image_to_save.show()
-                saved_images.show()
-                saved_popup = Popup(size_hint=(1, .5), title='Duplicate Image')
-                saved_popup_content = BoxLayout(orientation='vertical')
-                saved_label = Label(font_size=20, text=f'Duplicate Image! Image already exists')
-                ok_save_button = Button(text='OK', font_size=20, on_release=lambda a: saved_popup.dismiss())
-                saved_popup_content.add_widget(saved_label)
-                saved_popup_content.add_widget(ok_save_button)
-                saved_popup.add_widget(saved_popup_content)
-                saved_popup.open()                
-                return
+            # if self.image_is_same(saved_image_path, self.rendered_image.source):
+            #     image_to_save.show()
+            #     saved_images.show()
+            #     saved_popup = Popup(size_hint=(1, .5), title='Duplicate Image')
+            #     saved_popup_content = BoxLayout(orientation='vertical')
+            #     saved_label = Label(font_size=20, text=f'Duplicate Image! Image already exists')
+            #     ok_save_button = Button(text='OK', font_size=20, on_release=lambda a: saved_popup.dismiss())
+            #     saved_popup_content.add_widget(saved_label)
+            #     saved_popup_content.add_widget(ok_save_button)
+            #     saved_popup.add_widget(saved_popup_content)
+            #     saved_popup.open()                
+            #     return
+
+        self.used_watermark.save(f'{self.watermark_dir}/{date_to_save}.png')
+
+
+        watermark_details = {"path": fp_to_save, "date_created": f"{now_date}"}
+        watermark_data = {}
+
+        with open('data/save_watermark_data.json') as outfile:
+            watermark_data = json.load(outfile)
+
+        data_dates = []
+        
+        watermark_data["data"].append(watermark_details)
+
+        
+        if len(watermark_data["data"]) > 3:
+            for obj in watermark_data["data"]:
+                data_dates.append(self.convert_to_date(obj["date_created"]))
+            oldest_date = max(data_dates)
+            for obj in watermark_data["data"]:
+                if oldest_date == self.convert_to_date(obj["date_created"]):
+                    watermark_data["date_created"].remove(obj)
+                    if os.path.exists(obj["path"]):
+                        os.remove(obj["path"])
+             
+
+        with open('data/save_watermark_data.json', "w") as outfile:
+            json.dump(watermark_data, outfile)
+
+
+
+        # calender = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6, 'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12}
         
         image_to_save.save(fp= fp_to_save)
 
@@ -433,6 +474,10 @@ class EditorPage(Screen):
         saved_popup_content.add_widget(ok_save_button)
         saved_popup.add_widget(saved_popup_content)
         saved_popup.open()
+
+        self.temp_dir = f'{os.getcwd()}/temp'
+
+        
 
 
     def image_is_same(self, imageA, imageB):
@@ -472,15 +517,32 @@ class EditorPage(Screen):
             image_to_save.save(fp=f.name)
 
         
-
+    def delete_temp_files(self):
+        for file in os.listdir(self.temp_dir):
+            os.remove(f'{self.temp_dir}/{file}')
+        
 
 
     def return_to_homepage(self, controller, e):
+
         controller.initialize_home_page()
+        self.delete_temp_files()
 
 
 
 
 
+    def convert_to_date(self, watermark_date):
+    
+        year_month_date = watermark_date.split(' ')[0].split('-')
+        year=int(year_month_date[0])
+        month=int(year_month_date[1])
+        day = int(year_month_date[2])
+        hour_minute_second = watermark_date.split(' ')[1].split(':')
+        hour = int(hour_minute_second[0])
+        minute = int(hour_minute_second[1])
+        second = int(hour_minute_second[2].split('.')[0])
+        date_saved = datetime(year, month, day, hour, minute, second)
+        return date_saved
 
 

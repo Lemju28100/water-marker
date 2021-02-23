@@ -23,10 +23,10 @@ class PageController(ScreenManager):
         self.account_page = AccountPage(page_controller=self)
 
         #TODO uncomment this line after testing editor page
-        # self.switch_to(self.account_page)
+        self.switch_to(self.account_page)
 
         #TODO remove this line below after testing editor page
-        self.initialize_editor_page()
+        
 
         
 
@@ -49,10 +49,11 @@ class PageController(ScreenManager):
     def initialize_editor_page(self):
         #TODO uncomment the two lines below
 
-        # current_user = self.account_page.get_user()
-        # img_url = self.home_page.get_image_url()
+        current_user = self.account_page.get_user()
+        img_url = self.home_page.get_image_url()
         
-        #TODO add user=current_user and img_url =img_url
-        self.editor_page = EditorPage(page_controller=self)
+        #TODO add 
+
+        self.editor_page = EditorPage(page_controller=self, user=current_user, img_url =img_url)
         self.switch_to(self.editor_page)
             

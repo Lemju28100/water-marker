@@ -11,6 +11,9 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.button import Button
 import os
 from pathlib import Path
+from PIL import Image as Im
+import tkinter as tk
+from tkinter import filedialog
 
 class RecentsPage(Screen):
     def __init__(self, page_controller, user, **kw):
@@ -41,7 +44,7 @@ class RecentsPage(Screen):
 
         for i in range(len(dir_list)):
             img = Image(source=f'{images_path}/{dir_list[i]}', size_hint=(1, 1),
-            keep_ratio = False, allow_stretch=True)
+            keep_ratio = False, allow_stretch=True, on_press_down=self.save_image_as)
 
             images_box.add_widget(img)
         self.add_widget(images_box)
@@ -49,4 +52,21 @@ class RecentsPage(Screen):
         
     def back_to_home(self, page_controller, event):
         page_controller.initialize_home_page()
+
+    def save_image_as(self, image):
+        image_source = image.source
+        image_photo = Im.open(image_source)
+
+        root = tk.Tk()
+        root.withdraw()
+        
+        root = tk.Tk()
+        root.withdraw()
+        files = [('PNG Image', '*.png'), ('JPEG Image', '*.jpeg')] 
+        f = filedialog.asksaveasfile(filetypes=files, defaultextension=files)
+        if f is None:
+            return
+        else:
+
+            image_photo.save(fp=f.name)
                 

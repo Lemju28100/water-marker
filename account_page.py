@@ -55,6 +55,7 @@ class AccountPage(Screen):
         # define current username
         self.user = ''
         self.name = 'account_page'
+        self.number_of_accounts= 0
 
         # iterate through user directories
         for subdir, dir, files in os.walk(self.current_directory):
@@ -75,14 +76,16 @@ class AccountPage(Screen):
                         font_size=20)
                         accounts_box.add_widget(account_button)
                         self.accounts.append(directory_name.lower())
+                        self.number_of_accounts = len(dir)
             else:
                 self.add_account_label.text = ''
 
         # Add add button to add account
         add_account_button = Button(text='ADD ACCOUNT',
-         size_hint=(1, 1.3), on_release=partial(self.add_account, page_controller))
+         size_hint=(1, 1), on_release=partial(self.add_account, page_controller))
 
-        accounts_box.add_widget(add_account_button)
+        if self.number_of_accounts < 3:
+            accounts_box.add_widget(add_account_button)
         
         self.add_widget(accounts_box)
 
