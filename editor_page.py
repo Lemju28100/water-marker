@@ -1,3 +1,4 @@
+from logging import disable
 from kivy.core import text
 from kivy.core.text import markup
 from kivy.lang.builder import Builder
@@ -14,9 +15,15 @@ from kivy.uix.colorpicker import ColorPicker
 from kivy.uix.slider import Slider
 
 from kivy.uix.scrollview import ScrollView
+import numpy as np
+import cv2
+
+
+from datetime import datetime
 
 import tkinter as tk
 from tkinter import filedialog
+
 from PIL import Image as Im
 
 from kivy.graphics.context_instructions import Color
@@ -25,6 +32,7 @@ from kivy.uix.popup import Popup
 
 
 from functools import partial
+from PIL import ImageChops
 
 import os
 
@@ -36,6 +44,10 @@ class EditorPage(Screen):
         #TODO set self.user back to user
         self.user = 'kathy'
         self.save_counter = 0
+        self.number_of_times_image_edited =0
+
+        self.img_dir = f'{os.getcwd()}/users/{self.user}/images'
+        self.watermark_dir = f'{os.getcwd()}/users/{self.user}/watermarks'
 
         #TODO set self.img_url back to img_url
         self.img_url = f'{os.getcwd()}/users/{self.user}/images/test.png'
@@ -53,11 +65,11 @@ class EditorPage(Screen):
 
         self.generate_recent_watermarks()
         self.generate_editing_box()
-        self.generate_share_box()
+        self.generate_share_box(page_controller=page_controller)
         self.add_widget(self.root_layout)
 
     def generate_recent_watermarks(self):
-        recent_watermark_box = BoxLayout(orientation='vertical', size_hint=(.15, 1))
+        recent_watermark_box = BoxLayout(orientation='vertical', size_hint=(.15, 1), spacing=20)
         recent_watermark_label = Label(text='RECENT WATERMARKS', size_hint = (1, .4), font_size=15)
         recent_watermark_box.add_widget(recent_watermark_label)
 
@@ -65,10 +77,10 @@ class EditorPage(Screen):
         
         for watermark in watermark_dir:
             watermark_source =f'{self.watermark_path}/{watermark}'
-            water_image = Image(source=watermark_source, size_hint=(1, 1), allow_stretch=False, keep_ratio=True)
+            water_image_button = Button(background_normal=watermark_source, size_hint=(1, 1), on_release=self.generate_editor)
 
 
-            recent_watermark_box.add_widget(water_image)
+            recent_watermark_box.add_widget(water_image_button)
         
         self.root_layout.add_widget(recent_watermark_box)
 
@@ -77,38 +89,38 @@ class EditorPage(Screen):
         editing_box = BoxLayout(orientation='vertical', size_hint=(.4, 1), spacing=5)
         editing_button_box = BoxLayout(orientation='horizontal', spacing=3, size_hint=(1, .1), pos_hint={'x': 0, 'y': 0})
 
-        add_text_button = Button(text=' ADD \n\nTEXT', font_size=15, size_hint=(1, 1))
-        add_watermark_button = Button(text='    ADD \n\nWATERMARK', font_size=15, size_hint=(1, 1), on_release=self.generate_editor)
-        delete_watermark_button = Button(text='    DELETE \n\nWATERMARK', font_size=15, size_hint=(1, 1))
+        # add_text_button = Button(text=' ADD \n\nTEXT', font_size=15, size_hint=(1, 1))
+        self.add_watermark_button = Button(text='ADD WATERMARK', font_size=15, size_hint=(1, 1), on_release=self.generate_editor)
+        # delete_watermark_button = Button(text='    DELETE \n\nWATERMARK', font_size=15, size_hint=(1, 1))
 
-        editing_button_box.add_widget(add_text_button)
-        editing_button_box.add_widget(add_watermark_button)
-        editing_button_box.add_widget(delete_watermark_button)
+        # editing_button_box.add_widget(add_text_button)
+        editing_button_box.add_widget(self.add_watermark_button)
+        # editing_button_box.add_widget(delete_watermark_button)
 
         image_box = BoxLayout(orientation='vertical', size_hint=(1, .7))
-        user_image = Image(source=self.img_url, allow_stretch=False, keep_ratio=True)
-        image_box.add_widget(user_image)
+        self.user_image = Image(source=self.img_url, allow_stretch=False, keep_ratio=True)
+        image_box.add_widget(self.user_image)
 
         editing_box.add_widget(editing_button_box)
         editing_box.add_widget(image_box)
 
         self.root_layout.add_widget(editing_box)
 
-    def generate_share_box(self):
+    def generate_share_box(self, page_controller):
         share_box = BoxLayout(orientation='vertical', size_hint=(.15, 1), spacing=5)
 
 
-        view_recents_button = Button(text="VIEW RECENTS", font_size=15, size_hint=(1, .1))
+        view_recents_button = Button(text="VIEW RECENTS", font_size=15, size_hint=(1, .1), on_release=partial(self.view_recents, page_controller))
         empty_space = BoxLayout(orientation='vertical', size_hint=(1, .3))
-        save_button = Button(text='SAVE', font_size=15, size_hint=(1, .1))
-        save_as_button = Button(text='SAVE AS', font_size=15, size_hint=(1, .1))
+        self.save_button = Button(text='SAVE', font_size=15, size_hint=(1, .1), on_release=self.save_rendered_image, disabled=True)
+        self.save_as_button = Button(text='SAVE AS', font_size=15, size_hint=(1, .1), on_release=self.save_rendered_image_as, disabled = True)
         empty_space2 = BoxLayout(orientation='vertical', size_hint=(1, .3))
-        back_button = Button(text='BACK', font_size=15, size_hint=(1, .1))
+        back_button = Button(text='BACK', font_size=15, size_hint=(1, .1), on_release=partial(self.return_to_homepage, page_controller))
 
         share_box.add_widget(view_recents_button)
         share_box.add_widget(empty_space)
-        share_box.add_widget(save_button)
-        share_box.add_widget(save_as_button)
+        share_box.add_widget(self.save_button)
+        share_box.add_widget(self.save_as_button)
         share_box.add_widget(empty_space2)
         share_box.add_widget(back_button)
 
@@ -117,12 +129,18 @@ class EditorPage(Screen):
 
     def generate_editor(self, button):
 
-        editor_box_popup = Popup(title='EDIT IMAGE')
+        if button.text == 'ADD WATERMARK':
 
-        image_is_uploaded = False
-        root = tk.Tk()
-        root.withdraw()
-        self.marker_path = filedialog.askopenfilename()
+            image_is_uploaded = False
+            root = tk.Tk()
+            root.withdraw()
+            self.marker_path = filedialog.askopenfilename()
+
+        else:
+            self.marker_path = button.background_normal
+
+
+        self.editor_box_popup = Popup(title='EDIT IMAGE')
 
         editor_box_content_box = BoxLayout(orientation="horizontal", size_hint=(1, 1), spacing=20)
 
@@ -195,6 +213,7 @@ class EditorPage(Screen):
         watermark_config_box.add_widget(position_label)
 
         watermark_position_grid = GridLayout(rows=3, size_hint=(1, 3))
+        
         self.watermark_position_button_names = [i.capitalize() for i in ['Top Left', 'Top middle', 'top right', 'left', 'middle', 'right', 'bottom left', 'bottom middle', 'bottom right']]
         for position in self.watermark_position_button_names:
             position_button = Button(text=position.capitalize(), font_size=12, on_release=self.render_image)
@@ -218,7 +237,7 @@ class EditorPage(Screen):
         self.rotation_slider.bind(value=self.render_image)
 
         size_label = Label(text='size')
-        self.size_slider = Slider(min=1, max=10, step=1)
+        self.size_slider = Slider(min=1, max=10, step=1, value=4)
         watermark_config_box.add_widget(size_label)
         watermark_config_box.add_widget(self.size_slider)
         self.size_slider.bind(value=self.render_image)
@@ -226,25 +245,25 @@ class EditorPage(Screen):
         up_arrow_spacing = BoxLayout(orientation='vertical')
         watermark_config_box.add_widget(up_arrow_spacing)
 
-        move_up_button = Button(text='up', size_hint=(.3, 1), pos_hint={'x':.35, 'y':0})
+        move_up_button = Button(text='up', size_hint=(.3, 1), pos_hint={'x':.35, 'y':0}, on_release=self.render_image)
         watermark_config_box.add_widget(move_up_button)
 
         move_left_and_right_box = BoxLayout(orientation='horizontal')
-        move_left_button = Button(text='left')
+        move_left_button = Button(text='left', on_release=self.render_image)
         move_label = Label(text='move', font_size=15)
-        move_right_button = Button(text='right')
+        move_right_button = Button(text='right', on_release=self.render_image)
         move_left_and_right_box.add_widget(move_left_button)
         move_left_and_right_box.add_widget(move_label)
         move_left_and_right_box.add_widget(move_right_button)
         watermark_config_box.add_widget(move_left_and_right_box)
 
-        down_arrow_button = Button(text='down', size_hint=(.3, 1), pos_hint={'x':.35, 'y':0})
-        watermark_config_box.add_widget(down_arrow_button)
+        move_down_button = Button(text='down', size_hint=(.3, 1), pos_hint={'x':.35, 'y':0}, on_release=self.render_image)
+        watermark_config_box.add_widget(move_down_button)
 
         done_button_spacing = BoxLayout(orientation='horizontal')
         watermark_config_box.add_widget(done_button_spacing)
 
-        done_button = Button(text='DONE', font_size=15)
+        done_button = Button(text='DONE', font_size=15, on_release=self.render_image)
         watermark_config_box.add_widget(done_button)
 
         config_box.add_widget(watermark_config_box)
@@ -266,8 +285,8 @@ class EditorPage(Screen):
             return
 
         if image_is_uploaded:
-            editor_box_popup.content = editor_box_content_box
-            editor_box_popup.open()
+            self.editor_box_popup.content = editor_box_content_box
+            self.editor_box_popup.open()
             self.render_image()
             
 
@@ -296,11 +315,11 @@ class EditorPage(Screen):
 
 
     def render_image(self, button='a', b='b'):
-        main_image = Im.open(self.img_url)
+        self.main_image = Im.open(self.img_url)
         watermark = Im.open(self.marker_path)
 
-        main_image_x_size = main_image.size[0]
-        main_image_y_size = main_image.size[1]
+        main_image_x_size = self.main_image.size[0]
+        main_image_y_size = self.main_image.size[1]
 
                 
         rotation_value = self.rotation_slider.value
@@ -318,12 +337,35 @@ class EditorPage(Screen):
 
         # Position the image
         # Loop through all the other children in parent and enable them
+
+        move_step = int(main_image_x_size/40)
         if type(button) == Button:
+            print(button.parent)
+            if type(button.parent) == GridLayout:
+
             # for butt in button.parent.children:
             #     butt.enabled = True
             #     button.parent._trigger_layout()
             #     print(butt.enabled)
-            self.watermark_position = watermark_positions[button.text]
+                self.watermark_position = watermark_positions[button.text]
+            else:
+                if button.text == 'up':
+                    self.watermark_position = (self.watermark_position[0], self.watermark_position[1] - move_step)
+                elif button.text == 'down':
+                    self.watermark_position = (self.watermark_position[0], self.watermark_position[1] + move_step)
+                elif button.text == 'left':
+                    self.watermark_position = (self.watermark_position[0] - move_step, self.watermark_position[1])
+                elif button.text == 'right':
+                    self.watermark_position = (self.watermark_position[0] + move_step, self.watermark_position[1])
+                else:
+                    self.editor_box_popup.dismiss()
+                    self.user_image.source = self.rendered_image.source
+                    self.main_image = Im.open(fp=self.user_image.source)
+                    self.add_watermark_button.disabled = True
+                    self.save_as_button.disabled = False
+                    self.save_button.disabled = False
+
+            
             
 
 
@@ -334,28 +376,107 @@ class EditorPage(Screen):
 
 
 
-        img_format = main_image.format
+        self.img_format = self.main_image.format
         
         watermark.thumbnail((watermark_x_size, watermark_y_size))
         watermark.putalpha(int(25.5 * opacity_multiplier))
 
         rotated_image = watermark.rotate(rotation_value, expand=1)
-        main_image.paste(rotated_image, self.watermark_position, rotated_image)
+        self.main_image.paste(rotated_image, self.watermark_position, rotated_image)
 
-        save_source = f'temp/temp_img{self.save_counter}.{img_format}'
-        self.save_counter += 1
-        if self.save_counter > 2:
-            os.remove(f'temp/temp_img{self.save_counter - 2}.{img_format}')
+        save_source = f'temp/temp_img{self.save_counter}.{self.img_format}'
+        
 
-        main_image.save(save_source)
+        self.main_image.save(save_source)
 
         self.rendered_image.source = save_source
 
-        main_image.close()
+        if self.save_counter > 1:
+            os.remove(f'temp/temp_img{self.save_counter - 1}.{self.img_format}')
+
+        self.save_counter += 1
+        self.main_image.close()
         watermark.close()
 
         
+    def save_rendered_image(self, e):
+        date_to_save = datetime.now().strftime('%b-%d-%I%M%p-%G')
+
+        image_to_save = Im.open(self.rendered_image.source)
+        fp_to_save = f'{os.getcwd()}/users/{self.user}/images/{date_to_save}.{self.img_format}'
+
+        for image in os.listdir(self.img_dir):
+            saved_image_path = f'{self.img_dir}/{image}'
+            saved_images = Im.open(saved_image_path)
+
+            if self.image_is_same(saved_image_path, self.rendered_image.source):
+                image_to_save.show()
+                saved_images.show()
+                saved_popup = Popup(size_hint=(1, .5), title='Duplicate Image')
+                saved_popup_content = BoxLayout(orientation='vertical')
+                saved_label = Label(font_size=20, text=f'Duplicate Image! Image already exists')
+                ok_save_button = Button(text='OK', font_size=20, on_release=lambda a: saved_popup.dismiss())
+                saved_popup_content.add_widget(saved_label)
+                saved_popup_content.add_widget(ok_save_button)
+                saved_popup.add_widget(saved_popup_content)
+                saved_popup.open()                
+                return
         
+        image_to_save.save(fp= fp_to_save)
+
+
+        saved_popup = Popup(size_hint=(1, .5), title='Saved')
+        saved_label = Label(font_size=20, text=f'Saved Succesfully! Find image in recents page')
+        ok_save_button = Button(text='OK', font_size=20, on_release=lambda a: saved_popup.dismiss())
+        saved_popup_content = BoxLayout(orientation='vertical')
+        saved_popup_content.add_widget(saved_label)
+        saved_popup_content.add_widget(ok_save_button)
+        saved_popup.add_widget(saved_popup_content)
+        saved_popup.open()
+
+
+    def image_is_same(self, imageA, imageB):
+        # the 'Mean Squared Error' between the two images is the
+        # sum of the squared difference between the two images;
+        # NOTE: the two images must have the same dimension
+        imageA = cv2.imread(imageA)
+        imageB = cv2.imread(imageB)
+        
+        err = np.sum((imageA.astype("float") - imageB.astype("float")) ** 2)
+        err /= float(imageA.shape[0] * imageA.shape[1])
+        
+        # return the MSE, the lower the error, the more "similar"
+        # the two images are
+        return err <= 0
+
+        
+
+    def save_rendered_image_as(self, e):
+        # date_to_save = datetime.now().strftime('%b-%d-%I%M%p-%G')
+
+        image_to_save = Im.open(self.rendered_image.source)
+        
+        # fp_to_save = f'{os.getcwd()}/users/{self.user}/images/{date_to_save}.{self.img_format}'
+        
+
+        # image_to_save.save(fp= fp_to_save)
+
+        root = tk.Tk()
+        root.withdraw()
+        files = [('PNG Image', '*.png'), ('JPEG Image', '*.jpeg')] 
+        f = filedialog.asksaveasfile(filetypes=files, defaultextension=files)
+        if f is None:
+            return
+        else:
+
+            image_to_save.save(fp=f.name)
+
+        
+
+
+
+    def return_to_homepage(self, controller, e):
+        controller.initialize_home_page()
 
 
 
