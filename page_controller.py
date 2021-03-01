@@ -1,17 +1,10 @@
-from kivy.app import App
-from kivy.base import runTouchApp
-from kivy.lang import Builder
-from kivy.properties import ListProperty
-from kivy.uix.boxlayout import BoxLayout
 from account_page import AccountPage
 from home_page import HomePage
 from kivy.graphics.vertex_instructions import (Rectangle, Ellipse, Line)
 from recents_page import RecentsPage
-from kivy.uix.screenmanager import ScreenManager, Screen, FadeTransition
+from kivy.uix.screenmanager import ScreenManager
 from editor_page import EditorPage
 
-import time
-import random
 
 
 class PageController(ScreenManager):

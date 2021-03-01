@@ -1,18 +1,9 @@
-from logging import disable
-from os.path import split
-from kivy.core import text
-from kivy.core.text import markup
-from kivy.lang.builder import Builder
-from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.label import Label
 from kivy.uix.screenmanager import Screen
 from kivy.uix.button import Button
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.graphics.vertex_instructions import (Rectangle, Ellipse, Line)
-from kivy.uix.textinput import TextInput
-from kivy.uix.dropdown import DropDown
-from kivy.uix.colorpicker import ColorPicker
 from kivy.uix.slider import Slider
 import json
 

@@ -1,16 +1,11 @@
 from functools import partial
-from kivy.core import text
-from kivy.uix.label import Label
 from kivy.uix.screenmanager import Screen
 from kivy.graphics.vertex_instructions import (Rectangle, Ellipse, Line)
-from kivy.uix.floatlayout import FloatLayout
-from kivy.uix.boxlayout import BoxLayout
 from kivy.graphics.context_instructions import Color
 from kivy.uix.image import Image
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.button import Button
 import os
-from pathlib import Path
 from PIL import Image as Im
 import tkinter as tk
 from tkinter import filedialog

@@ -1,4 +1,3 @@
-from os import waitpid
 from kivy.app import App
 from page_controller import PageController
 from kivy.config import Config

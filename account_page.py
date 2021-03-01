@@ -1,5 +1,3 @@
-from logging import root, warn, warning
-from kivy.lang.builder import Builder
 from kivy.uix.label import Label
 from kivy.uix.screenmanager import Screen
 from kivy.uix.button import Button
