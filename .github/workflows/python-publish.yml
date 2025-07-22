@@ -1,0 +1,19 @@
+# Workflows must have a name
+# Workflow part
+name: first-workflow
+
+# This is the trigger (an event which the workflow will be triggered on)
+on: workflow_dispatch
+
+# Job part
+jobs:
+  first-job:
+    runs-on: ubuntu-latest
+
+    # Step part
+    steps:
+    - name: Print Greeting
+      run: echo "Hello World"
+    - name: Print Goodbye
+      run: echo "bread"
+  
